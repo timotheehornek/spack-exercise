@@ -2,18 +2,11 @@ FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND noninteractive
 
-# Prohibit /usr/doc files from being installed
-ADD 01_nodoc /etc/dpkg/dpkg.cfg.d/01_nodoc
-
-# Fix timezone
-RUN apt-get update && apt-get install -y apt-utils vim tmux htop git curl wget cmake build-essential sudo python3 python-is-python3 pkg-config python3-openssl bash gzip file openssl gnupg
-# Tools for packaging
-#RUN apt-get install -y libboost-all-dev
-#RUN apt-get install -y libdeal.ii-dev
+RUN apt-get update && apt-get install -y apt-utils vim tmux htop git curl wget cmake build-essential sudo python3 python-is-python3 pkg-config python3-openssl bash gzip file openssl gnupg nano
+RUN apt-get install -y libboost-filesystem-dev libboost-container-dev
 
 # Cleanup
 RUN apt-get clean
-#RUN rm -rf /var/lib/apt/lists/* && rm -rf /tmp/*
 RUN rm -rf /tmp/*
 
 # Create user
@@ -39,7 +32,14 @@ WORKDIR "$USER_HOME"
 
 ENV USER "$USER_NAME"
 ENV LD_LIBRARY_PATH /usr/local/lib:"${LD_LIBRARY_PATH}"
-RUN git clone -b releases/v0.17 https://github.com/spack/spack.git spack && echo ". ${HOME}/spack/share/spack/setup-env.sh" >> ${USER_HOME}/.bashrc
+
+# Set up Spack
+COPY spack-config ${USER_HOME}/.spack
+RUN git clone -b releases/v0.17 https://github.com/spack/spack.git spack && echo ". ${USER_HOME}/spack/share/spack/setup-env.sh" >> ${USER_HOME}/.bashrc
+RUN sudo chown -R $USER_NAME:$USER_NAME .spack && . ${USER_HOME}/spack/share/spack/setup-env.sh && spack spec yaml-cpp
+# Bootstrap clingo
+#COPY bootstrap-spack.sh ${USER_HOME}/bootstrap-spack.sh
+#RUN su - $USER_NAME -c ./${USER_HOME}/bootstrap-spack.sh && rm bootstrap-spack.sh
 
 CMD ["bash"]
 
